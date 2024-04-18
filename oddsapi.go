@@ -18,11 +18,8 @@ import (
 )
 
 const (
-	DefaultBaseUrl    = "https://api.the-odds-api.com/"
-	userAgent         = "go-oddsapi"
-	DefaultRegion     = "us"
-	DefaultDateFormat = "iso"
-	DefaultOddsFormat = "decimal"
+	DefaultBaseUrl = "https://api.the-odds-api.com/"
+	userAgent      = "go-oddsapi"
 )
 
 const (
@@ -42,6 +39,7 @@ type Client struct {
 	configureOnce     sync.Once
 
 	SportsService *SportsService
+	OddsService   *OddsService
 }
 
 func NewClient(apiToken string, rateLimitPerSec int, options ...ClientOption) (*Client, error) {
@@ -82,6 +80,7 @@ func NewClient(apiToken string, rateLimitPerSec int, options ...ClientOption) (*
 	}
 
 	c.SportsService = NewSportsService(c)
+	c.OddsService = NewOddsService(c)
 
 	err = c.applyOptions(options...)
 	if err != nil {
