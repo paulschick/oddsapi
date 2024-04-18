@@ -145,12 +145,12 @@ func (c *Client) Do(req *retryablehttp.Request, data interface{}) (*Response, er
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 
 	err = json.Unmarshal(bodyBytes, data)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 
 	return response, err

@@ -3,6 +3,8 @@
 
 package oddsapi
 
+const DefaultSports = "upcoming"
+
 type ParameterValue interface {
 	Valid() bool
 	String() string

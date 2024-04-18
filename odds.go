@@ -77,6 +77,13 @@ func NewOddsParams(apiKey, sportKey string) *OddsParams {
 	}
 }
 
+func NewOddsParamsUpcoming(apiKey string) *OddsParams {
+	return &OddsParams{
+		ApiToken: apiKey,
+		SportKey: DefaultSports,
+	}
+}
+
 func (o *OddsParams) SetRegions(regions ...Region) error {
 	if regions == nil {
 		return nil
@@ -202,4 +209,32 @@ type OddsService struct {
 
 func NewOddsService(c *Client) *OddsService {
 	return &OddsService{c: c}
+}
+
+func (o *OddsService) NewOddsParams(sportKey string) *OddsParams {
+	return NewOddsParams(o.c.apiToken, sportKey)
+}
+
+func (o *OddsService) NewOddsParamsUpcoming() *OddsParams {
+	return NewOddsParamsUpcoming(o.c.apiToken)
+}
+
+func (o *OddsService) GetOdds(params *OddsParams) ([]*Odds, *Response, error) {
+	reqUrl, err := params.BuildPath(o.c.GetBaseUrl())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := o.c.NewGetRequest(reqUrl, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var data []*Odds
+	resp, err := o.c.Do(req, &data)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return data, resp, nil
 }
