@@ -26,7 +26,7 @@ type Market struct {
 type BookMaker struct {
 	Key        string    `json:"key" csv:"key"`
 	Title      string    `json:"title" csv:"title"`
-	LastUpdate string    `json:"last_update" csv:"last_update"`
+	LastUpdate string    `json:"last_update,omitempty" csv:"last_update,omitempty"`
 	Markets    []*Market `json:"markets" csv:"markets"`
 }
 
@@ -162,9 +162,6 @@ func (o *OddsParams) SetCommenceTimeTo(timeTo time.Time) {
 }
 
 func (o *OddsParams) GetEncoded() (string, error) {
-	if o.Markets == "" {
-		o.Markets = MarketH2H.String()
-	}
 	if o.DateFormat == "" || !o.DateFormat.Valid() {
 		o.DateFormat = DefaultDateFormat
 	}

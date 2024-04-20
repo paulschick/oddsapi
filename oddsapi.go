@@ -38,8 +38,10 @@ type Client struct {
 	limiterBurst      float64
 	configureOnce     sync.Once
 
-	SportsService *SportsService
-	OddsService   *OddsService
+	SportsService    *SportsService
+	OddsService      *OddsService
+	EventService     *EventService
+	EventOddsService *EventOddsService
 }
 
 func NewClient(apiToken string, rateLimitPerSec int, options ...ClientOption) (*Client, error) {
@@ -81,6 +83,8 @@ func NewClient(apiToken string, rateLimitPerSec int, options ...ClientOption) (*
 
 	c.SportsService = NewSportsService(c)
 	c.OddsService = NewOddsService(c)
+	c.EventService = NewEventService(c)
+	c.EventOddsService = NewEventOddsService(c)
 
 	err = c.applyOptions(options...)
 	if err != nil {
