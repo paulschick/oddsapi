@@ -6,6 +6,5 @@ package oddsapi
 import "net/url"
 
 type Params interface {
-	GetEncoded() (string, error)
 	BuildPath(baseUrl *url.URL) (string, error)
 }

@@ -27,6 +27,13 @@ const (
 	DefaultBurstPercent     = 0.25
 )
 
+type BaseRequestClient interface {
+	GetApiToken() string
+	GetBaseUrl() *url.URL
+	NewGetRequest(requestUrl string, headers *map[string]string) (*retryablehttp.Request, error)
+	Do(req *retryablehttp.Request, data interface{}) (*Response, error)
+}
+
 type Client struct {
 	client            *retryablehttp.Client
 	baseUrl           *url.URL
@@ -163,6 +170,10 @@ func (c *Client) Do(req *retryablehttp.Request, data interface{}) (*Response, er
 func (c *Client) GetBaseUrl() *url.URL {
 	u := *c.baseUrl
 	return &u
+}
+
+func (c *Client) GetApiToken() string {
+	return c.apiToken
 }
 
 func (c *Client) NewGetRequest(requestUrl string, headers *map[string]string) (*retryablehttp.Request, error) {

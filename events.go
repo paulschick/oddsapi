@@ -6,7 +6,6 @@ package oddsapi
 import (
 	"errors"
 	"fmt"
-	"github.com/google/go-querystring/query"
 	"net/url"
 	"strings"
 	"time"
@@ -75,24 +74,25 @@ func (e *EventParams) SetCommenceTimeTo(timeTo time.Time) {
 	e.CommenceTimeTo = &iso
 }
 
-func (e *EventParams) GetEncoded() (string, error) {
+func (e *EventParams) checkSetDateFormat() {
 	if e.DateFormat == "" || !e.DateFormat.Valid() {
 		e.DateFormat = DefaultDateFormat
 	}
+}
+
+func (e *EventParams) checkSetEventIds() {
 	if e.EventIds != nil && *e.EventIds == "" {
 		e.EventIds = nil
 	}
+}
+
+func (e *EventParams) checkSetCommenceTimes() {
 	if e.CommenceTimeFrom != nil && *e.CommenceTimeFrom == "" {
 		e.CommenceTimeFrom = nil
 	}
 	if e.CommenceTimeTo != nil && *e.CommenceTimeTo == "" {
 		e.CommenceTimeTo = nil
 	}
-	q, err := query.Values(e)
-	if err != nil {
-		return "", err
-	}
-	return q.Encode(), nil
 }
 
 func (e *EventParams) BuildPath(baseUrl *url.URL) (string, error) {
@@ -100,15 +100,7 @@ func (e *EventParams) BuildPath(baseUrl *url.URL) (string, error) {
 		return "", errors.New("no sports key provided")
 	}
 	basePath := fmt.Sprintf("v4/sports/%s/events", e.SportKey)
-	bURLCopy := *baseUrl
-	bURL := &bURLCopy
-	bURL = bURL.JoinPath(basePath)
-	encoded, err := e.GetEncoded()
-	if err != nil {
-		return "", err
-	}
-	bURL.RawQuery = encoded
-	return bURL.String(), nil
+	return buildPath(e, basePath, baseUrl, e.checkSetDateFormat, e.checkSetEventIds, e.checkSetCommenceTimes)
 }
 
 type EventService struct {
@@ -128,21 +120,6 @@ func (e *EventService) NewEventParams(sportKey string) *EventParams {
 }
 
 func (e *EventService) GetEvents(params *EventParams) ([]*Event, *Response, error) {
-	reqUrl, err := params.BuildPath(e.c.GetBaseUrl())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	req, err := e.c.NewGetRequest(reqUrl, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	var data []*Event
-	resp, err := e.c.Do(req, &data)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return data, resp, nil
+	return requestHandler[[]*Event](params, e.c, data)
 }

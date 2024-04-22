@@ -4,7 +4,6 @@
 package oddsapi
 
 import (
-	"github.com/google/go-querystring/query"
 	"net/url"
 )
 
@@ -21,29 +20,12 @@ type SportsParams struct {
 	ApiToken string `url:"apiKey"`
 }
 
-func (s *SportsParams) GetEncoded() (string, error) {
-	q, err := query.Values(s)
-	if err != nil {
-		return "", err
-	}
-	return q.Encode(), nil
-}
-
 func (s *SportsParams) BuildPath(baseUrl *url.URL) (string, error) {
-	basePath := "v4/sports"
-	bURLCopy := *baseUrl
-	bURL := &bURLCopy
-	bURL = bURL.JoinPath(basePath)
-	encoded, err := s.GetEncoded()
-	if err != nil {
-		return "", err
-	}
-	bURL.RawQuery = encoded
-	return bURL.String(), nil
+	return buildPath(s, "v4/sports", baseUrl)
 }
 
 type SportsService struct {
-	c *Client
+	c BaseRequestClient
 }
 
 func NewSportsService(c *Client) *SportsService {
@@ -51,22 +33,7 @@ func NewSportsService(c *Client) *SportsService {
 }
 
 func (s *SportsService) GetSports() ([]*Sports, *Response, error) {
-	params := &SportsParams{ApiToken: s.c.apiToken}
-	reqUrl, err := params.BuildPath(s.c.GetBaseUrl())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	req, err := s.c.NewGetRequest(reqUrl, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
+	params := &SportsParams{ApiToken: s.c.GetApiToken()}
 	var data []*Sports
-	resp, err := s.c.Do(req, &data)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return data, resp, nil
+	return requestHandler(params, s.c, data)
 }

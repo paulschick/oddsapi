@@ -4,8 +4,8 @@
 package oddsapi
 
 import (
+	"errors"
 	"fmt"
-	"github.com/google/go-querystring/query"
 	"net/url"
 	"strings"
 )
@@ -91,38 +91,39 @@ func (e *EventOddsParams) SetOddsFormat(oddsFormat OddsFormat) bool {
 	return true
 }
 
-func (e *EventOddsParams) GetEncoded() (string, error) {
+func (e *EventOddsParams) ValidateDateFormat() {
 	if e.DateFormat == "" || !e.DateFormat.Valid() {
 		e.DateFormat = DefaultDateFormat
 	}
+}
+
+func (e *EventOddsParams) ValidateOddsFormat() {
 	if e.OddsFormat == "" || !e.OddsFormat.Valid() {
 		e.OddsFormat = DefaultOddsFormat
 	}
+}
+
+func (e *EventOddsParams) ValidateBookmakers() {
 	if e.Bookmakers != nil && *e.Bookmakers == "" {
 		e.Bookmakers = nil
 	}
+}
+
+func (e *EventOddsParams) ValidateRegion() {
 	if e.Region == "" {
 		e.Region = DefaultRegion.String()
 	}
-
-	q, err := query.Values(e)
-	if err != nil {
-		return "", err
-	}
-	return q.Encode(), nil
 }
 
 func (e *EventOddsParams) BuildPath(baseUrl *url.URL) (string, error) {
-	basePath := fmt.Sprintf("v4/sports/%s/events/%s/odds", e.SportKey, e.EventKey)
-	bURLCopy := *baseUrl
-	bURL := &bURLCopy
-	bURL = bURL.JoinPath(basePath)
-	encoded, err := e.GetEncoded()
-	if err != nil {
-		return "", err
+	if e.SportKey == "" {
+		return "", errors.New("sports key is empty")
+	} else if e.EventKey == "" {
+		return "", errors.New("event key is empty")
 	}
-	bURL.RawQuery = encoded
-	return bURL.String(), nil
+	basePath := fmt.Sprintf("v4/sports/%s/events/%s/odds", e.SportKey, e.EventKey)
+	return buildPath(e, basePath, baseUrl,
+		e.ValidateDateFormat, e.ValidateOddsFormat, e.ValidateBookmakers, e.ValidateRegion)
 }
 
 type EventOddsService struct{ c *Client }
@@ -140,21 +141,6 @@ func (e *EventOddsService) NewParams(sportKey, eventKey string) *EventOddsParams
 }
 
 func (e *EventOddsService) GetOdds(params *EventOddsParams) (*Odds, *Response, error) {
-	reqUrl, err := params.BuildPath(e.c.GetBaseUrl())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	req, err := e.c.NewGetRequest(reqUrl, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	var data *Odds
-	resp, err := e.c.Do(req, &data)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return data, resp, nil
+	return requestHandler(params, e.c, data)
 }

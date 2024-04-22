@@ -4,8 +4,8 @@
 package oddsapi
 
 import (
+	"errors"
 	"fmt"
-	"github.com/google/go-querystring/query"
 	"net/url"
 	"strings"
 	"time"
@@ -161,43 +161,51 @@ func (o *OddsParams) SetCommenceTimeTo(timeTo time.Time) {
 	o.CommenceTimeTo = &iso
 }
 
-func (o *OddsParams) GetEncoded() (string, error) {
+func (o *OddsParams) ValidateDateFormat() {
 	if o.DateFormat == "" || !o.DateFormat.Valid() {
 		o.DateFormat = DefaultDateFormat
 	}
+}
+
+func (o *OddsParams) ValidateOddsFormat() {
 	if o.OddsFormat == "" || !o.OddsFormat.Valid() {
 		o.OddsFormat = DefaultOddsFormat
 	}
+}
+
+func (o *OddsParams) ValidateEventIds() {
 	if o.EventIds != nil && *o.EventIds == "" {
 		o.EventIds = nil
 	}
+}
+
+func (o *OddsParams) ValidateBookmakers() {
 	if o.Bookmakers != nil && *o.Bookmakers == "" {
 		o.Bookmakers = nil
 	}
+}
+
+func (o *OddsParams) ValidateCommenceTimes() {
 	if o.CommenceTimeFrom != nil && *o.CommenceTimeFrom == "" {
 		o.CommenceTimeFrom = nil
 	}
 	if o.CommenceTimeTo != nil && *o.CommenceTimeTo == "" {
 		o.CommenceTimeTo = nil
 	}
-	q, err := query.Values(o)
-	if err != nil {
-		return "", err
-	}
-	return q.Encode(), nil
 }
 
 func (o *OddsParams) BuildPath(baseUrl *url.URL) (string, error) {
-	basePath := fmt.Sprintf("v4/sports/%s/odds/", o.SportKey)
-	bURLCopy := *baseUrl
-	bURL := &bURLCopy
-	bURL = bURL.JoinPath(basePath)
-	encoded, err := o.GetEncoded()
-	if err != nil {
-		return "", err
+	if o.SportKey == "" {
+		return "", errors.New("sports key is blank")
 	}
-	bURL.RawQuery = encoded
-	return bURL.String(), nil
+	basePath := fmt.Sprintf("v4/sports/%s/odds/", o.SportKey)
+	return buildPath(
+		o, basePath, baseUrl,
+		o.ValidateDateFormat,
+		o.ValidateOddsFormat,
+		o.ValidateEventIds,
+		o.ValidateBookmakers,
+		o.ValidateCommenceTimes)
 }
 
 type OddsService struct {
@@ -217,21 +225,6 @@ func (o *OddsService) NewOddsParamsUpcoming() *OddsParams {
 }
 
 func (o *OddsService) GetOdds(params *OddsParams) ([]*Odds, *Response, error) {
-	reqUrl, err := params.BuildPath(o.c.GetBaseUrl())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	req, err := o.c.NewGetRequest(reqUrl, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	var data []*Odds
-	resp, err := o.c.Do(req, &data)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return data, resp, nil
+	return requestHandler(params, o.c, data)
 }
